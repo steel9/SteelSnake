@@ -30,9 +30,13 @@ namespace SteelSnake
             Down
         }
 
-        public bool Equals(Pos2D pos)
+        public bool Equals(Pos2D pos, bool compareDirection = false)
         {
-            if (this.X == pos.X && this.Y == pos.Y && this.Direction_ == pos.Direction_)
+            if (pos == null)
+            {
+                return false;
+            }
+            else if (this.X == pos.X && this.Y == pos.Y && (!compareDirection || this.Direction_ == pos.Direction_))
             {
                 return true;
             }

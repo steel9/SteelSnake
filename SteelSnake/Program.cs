@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -45,38 +46,37 @@ namespace SteelSnake
                 }
             });
 
-            bool moving = false;
             gamePhysicsThread = new Thread(() =>
             {
-                var lastMove = default(DateTime);
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
                 while (runGame)
                 {
-                    var moveMsElapsed = DateTime.Now.Subtract(lastMove).TotalMilliseconds;
+                    var moveMsElapsed = stopWatch.ElapsedMilliseconds;
                     if (moveMsElapsed >= MOVE_DELAY)
                     {
+                        stopWatch.Stop();
                         System.Diagnostics.Debug.Print("Time elapsed since last move (ms): " + moveMsElapsed.ToString());
-                        moving = true;
                         Move();
-                        moving = false;
-                        lastMove = DateTime.Now;
+                        stopWatch.Restart();
                     }
                 }
             });
 
             renderingThread = new Thread(() =>
             {
+                var stopWatch = new Stopwatch();
                 while (runGame)
                 {
-                    var paintStart = DateTime.Now;
+                    stopWatch.Restart();
 
                     Paint();
 
-                    var end = DateTime.Now;
-                    var dtDiff = end.Subtract(paintStart);
-                    var msDiff = dtDiff.TotalMilliseconds;
+                    stopWatch.Stop();
+                    var msDiff = stopWatch.ElapsedMilliseconds;
                     System.Diagnostics.Debug.Print("Paint including wait for movement took: (ms): " + msDiff.ToString());
                     var fpsSleepMs = 1000 / fps;
-                    var sleepMs = Convert.ToInt32(Math.Round(fpsSleepMs - msDiff));
+                    var sleepMs = Convert.ToInt32(Math.Round((double)(fpsSleepMs - msDiff)));
                     if (sleepMs > 0)
                     {
                         Thread.Sleep(sleepMs);
@@ -135,25 +135,25 @@ namespace SteelSnake
             {
                 case ConsoleKey.LeftArrow:
                 case ConsoleKey.A:
-                    if (snakeDirection != Pos2D.Direction.Right)
+                    if (snakeDirection != Pos2D.Direction.Right && snakePositions[snakePositions.Length - 1].Direction_ != Pos2D.Direction.Right)
                         snakeDirection = Pos2D.Direction.Left;
                     break;
 
                 case ConsoleKey.RightArrow:
                 case ConsoleKey.D:
-                    if (snakeDirection != Pos2D.Direction.Left)
+                    if (snakeDirection != Pos2D.Direction.Left && snakePositions[snakePositions.Length - 1].Direction_ != Pos2D.Direction.Left)
                         snakeDirection = Pos2D.Direction.Right;
                     break;
 
                 case ConsoleKey.UpArrow:
                 case ConsoleKey.W:
-                    if (snakeDirection != Pos2D.Direction.Down)
+                    if (snakeDirection != Pos2D.Direction.Down && snakePositions[snakePositions.Length - 1].Direction_ != Pos2D.Direction.Down)
                         snakeDirection = Pos2D.Direction.Up;
                     break;
 
                 case ConsoleKey.DownArrow:
                 case ConsoleKey.S:
-                    if (snakeDirection != Pos2D.Direction.Up)
+                    if (snakeDirection != Pos2D.Direction.Up && snakePositions[snakePositions.Length - 1].Direction_ != Pos2D.Direction.Up)
                         snakeDirection = Pos2D.Direction.Down;
                     break;
 
@@ -286,6 +286,7 @@ namespace SteelSnake
                         }
                         break;
                 }
+                snakePositions[snakePositions.Length - 1].Direction_ = snakeDirection;
 
                 CollisionCheck();
             }
@@ -293,6 +294,86 @@ namespace SteelSnake
 
         static char[,] consoleBuffer = null;
         static void Paint()
+        {
+            lock (snakePositions)
+            {
+                var resized = consoleBuffer != null && (consoleBuffer.GetLength(0) != FieldX() || consoleBuffer.GetLength(1) != FieldY());
+
+                if (consoleBuffer == null || resized)
+                {
+                    consoleBuffer = new char[FieldX(), FieldY()];
+                    consoleBuffer.Fill('\0');
+                }
+
+                if (resized)
+                {
+                    Console.CursorVisible = false;
+                    for (int y = 0; y < Console.WindowHeight; ++y)
+                    {
+                        for (int x = 0; x < Console.WindowWidth; ++x)
+                        {
+                            Console.SetCursorPosition(x, y);
+                            Console.Write(" \b\b");
+                        }
+                    }
+
+                    if (applePos.X >= FieldX() || applePos.Y >= FieldY())
+                    {
+                        // apple is outside field boundaries, generate a new
+                        GenerateApple();
+                    }
+                }
+
+                try
+                {
+                    for (int y = 0; y < FieldY(); ++y)
+                    {
+                        for (int x = 0; x < FieldX(); ++x)
+                        {
+                            var pos = new Pos2D(x, y);
+
+                            var _continue = false;
+                            foreach (var snakePos in snakePositions)
+                            {
+                                if (snakePos.Equals(pos))
+                                {
+                                    Console.SetCursorPosition(x, y);
+                                    Console.Write("*");
+                                    consoleBuffer[x, y] = '*';
+                                    _continue = true;
+                                    break;
+                                }
+                            }
+                            if (_continue)
+                            {
+                                continue;
+                            }
+
+                            if (applePos.Equals(pos))
+                            {
+                                Console.SetCursorPosition(x, y);
+                                Console.Write("Q");
+                                consoleBuffer[x, y] = 'Q';
+                            }
+                            else if (consoleBuffer[x, y] != '\0')
+                            {
+                                Console.SetCursorPosition(x, y);
+                                Console.Write(" \b\b");
+                                consoleBuffer[x, y] = '\0';
+                            }
+                        }
+                    }
+                }
+                catch (IndexOutOfRangeException)
+                {
+                    //console was resized - repaint
+                    Paint();
+                    return;
+                }
+            }
+        }
+
+        static void Paint_unoptimized()
         {
             lock (snakePositions) {
                 var resized = consoleBuffer != null && (consoleBuffer.GetLength(0) != FieldX() || consoleBuffer.GetLength(1) != FieldY());
