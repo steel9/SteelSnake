@@ -11,7 +11,7 @@ namespace SteelSnake
     class Program
     {
         const int MOVE_DELAY = 70;
-        const int EXTENSION_TIMES = 3;
+        const int EXTENSION_TIMES = 15;
         const int POINTS_APPLE = 1;
 
         static bool runGame = true;
@@ -30,8 +30,9 @@ namespace SteelSnake
 
         static Pos2D applePos;
 
-        //static int fieldArea = 120 * 60;
         static int fieldArea => Console.WindowWidth * Console.WindowHeight;
+
+        static List<Pos2D> writtenConsolePositions = new List<Pos2D>();
 
         static int fps = 144;
 
@@ -74,7 +75,7 @@ namespace SteelSnake
 
                     stopWatch.Stop();
                     var msDiff = stopWatch.ElapsedMilliseconds;
-                    System.Diagnostics.Debug.Print("Paint including wait for movement took: (ms): " + msDiff.ToString());
+                    System.Diagnostics.Debug.Print("Paint including wait for movement took (ms): " + msDiff.ToString());
                     var fpsSleepMs = 1000 / fps;
                     var sleepMs = Convert.ToInt32(Math.Round((double)(fpsSleepMs - msDiff)));
                     if (sleepMs > 0)
@@ -100,7 +101,7 @@ namespace SteelSnake
             renderingThread.Join();
 
             string msg1 = "Game over! Score: " + Score.ToString();
-            string msg2 = "Press ENTER to exit";
+            const string msg2 = "Press ENTER to exit";
 
             if (gameOver)
             {
@@ -175,36 +176,60 @@ namespace SteelSnake
                 switch (snakeDirection)
                 {
                     case Pos2D.Direction.Left:
-                        snakePositions[i] = new Pos2D(snakePositions[i - 1].X - 1, snakePositions[i - 1].Y);
-                        if (snakePositions[i].X < 0)
                         {
-                            snakePositions[i].X = FieldX() - 1;
+                            var pos = new Pos2D(snakePositions[i - 1].X - 1, snakePositions[i - 1].Y);
+                            if (pos.X >= 0)
+                            {
+                                snakePositions[i] = pos;
+                            }
+                            else
+                            {
+                                snakePositions[i] = new Pos2D(FieldX() + pos.X, pos.Y);
+                            }
+                            break;
                         }
-                        break;
 
                     case Pos2D.Direction.Right:
-                        snakePositions[i] = new Pos2D(snakePositions[i - 1].X + 1, snakePositions[i - 1].Y);
-                        if (snakePositions[i].X >= FieldX())
                         {
-                            snakePositions[i].X = 0;
+                            var pos = new Pos2D(snakePositions[i - 1].X + 1, snakePositions[i - 1].Y);
+                            if (pos.X < FieldX())
+                            {
+                                snakePositions[i] = pos;
+                            }
+                            else
+                            {
+                                snakePositions[i] = new Pos2D(pos.X - FieldX(), pos.Y);
+                            }
+                            break;
                         }
-                        break;
 
                     case Pos2D.Direction.Up:
-                        snakePositions[i] = new Pos2D(snakePositions[i - 1].X, snakePositions[i - 1].Y - 1);
-                        if (snakePositions[i].Y < 0)
                         {
-                            snakePositions[i].Y = FieldY() - 1;
+                            var pos = new Pos2D(snakePositions[i - 1].X, snakePositions[i - 1].Y - 1);
+                            if (pos.Y >= 0)
+                            {
+                                snakePositions[i] = pos;
+                            }
+                            else
+                            {
+                                snakePositions[i] = new Pos2D(pos.X, FieldY() + pos.Y);
+                            }
+                            break;
                         }
-                        break;
 
                     case Pos2D.Direction.Down:
-                        snakePositions[i] = new Pos2D(snakePositions[i - 1].X, snakePositions[i - 1].Y + 1);
-                        if (snakePositions[i].Y >= FieldY())
                         {
-                            snakePositions[i].Y = 0;
+                            var pos = new Pos2D(snakePositions[i - 1].X, snakePositions[i - 1].Y + 1);
+                            if (pos.Y < FieldY())
+                            {
+                                snakePositions[i] = pos;
+                            }
+                            else
+                            {
+                                snakePositions[i] = new Pos2D(pos.X, pos.Y - FieldY());
+                            }
+                            break;
                         }
-                        break;
                 }
             }
         }
@@ -245,210 +270,153 @@ namespace SteelSnake
 
         static void Move()
         {
-            lock (snakePositions)
+            for (int i = 0; i < snakePositions.Length - 1; ++i)
             {
-                for (int i = 0; i < snakePositions.Length - 1; ++i)
-                {
-                    snakePositions[i] = snakePositions[i + 1];
-                }
-
-                switch (snakeDirection)
-                {
-                    case Pos2D.Direction.Left:
-                        snakePositions[snakePositions.Length - 1] = snakePositions[snakePositions.Length - 1].Add(-1, 0);
-                        if (snakePositions[snakePositions.Length - 1].X < 0)
-                        {
-                            snakePositions[snakePositions.Length - 1].X = FieldX() - 1;
-                        }
-                        break;
-
-                    case Pos2D.Direction.Right:
-                        snakePositions[snakePositions.Length - 1] = snakePositions[snakePositions.Length - 1].Add(1, 0);
-                        if (snakePositions[snakePositions.Length - 1].X >= FieldX())
-                        {
-                            snakePositions[snakePositions.Length - 1].X = 0;
-                        }
-                        break;
-
-                    case Pos2D.Direction.Up:
-                        snakePositions[snakePositions.Length - 1] = snakePositions[snakePositions.Length - 1].Add(0, -1);
-                        if (snakePositions[snakePositions.Length - 1].Y < 0)
-                        {
-                            snakePositions[snakePositions.Length - 1].Y = FieldY() - 1;
-                        }
-                        break;
-
-                    case Pos2D.Direction.Down:
-                        snakePositions[snakePositions.Length - 1] = snakePositions[snakePositions.Length - 1].Add(0, 1);
-                        if (snakePositions[snakePositions.Length - 1].Y >= FieldY())
-                        {
-                            snakePositions[snakePositions.Length - 1].Y = 0;
-                        }
-                        break;
-                }
-                snakePositions[snakePositions.Length - 1].Direction_ = snakeDirection;
-
-                CollisionCheck();
+                snakePositions[i] = snakePositions[i + 1];
             }
+
+            switch (snakeDirection)
+            {
+                case Pos2D.Direction.Left:
+                    {
+                        var pos = snakePositions[snakePositions.Length - 1].Add(-1, 0);
+                        if (pos.X >= 0)
+                        {
+                            snakePositions[snakePositions.Length - 1] = pos;
+                        }
+                        else
+                        {
+                            snakePositions[snakePositions.Length - 1] = new Pos2D(FieldX() + pos.X, pos.Y);
+                        }
+                        break;
+                    }
+
+                case Pos2D.Direction.Right:
+                    {
+                        var pos = snakePositions[snakePositions.Length - 1].Add(1, 0);
+                        if (pos.X < FieldX())
+                        {
+                            snakePositions[snakePositions.Length - 1] = pos;
+                        }
+                        else
+                        {
+                            snakePositions[snakePositions.Length - 1] = new Pos2D(pos.X - FieldX(), pos.Y);
+                        }
+                        break;
+                    }
+
+                case Pos2D.Direction.Up:
+                    {
+                        var pos = snakePositions[snakePositions.Length - 1].Add(0, -1);
+                        if (pos.Y >= 0)
+                        {
+                            snakePositions[snakePositions.Length - 1] = pos;
+                        }
+                        else
+                        {
+                            snakePositions[snakePositions.Length - 1] = new Pos2D(pos.X, FieldY() + pos.Y);
+                        }
+                        break;
+                    }
+
+                case Pos2D.Direction.Down:
+                    {
+                        var pos = snakePositions[snakePositions.Length - 1].Add(0, 1);
+                        if (pos.Y < FieldY())
+                        {
+                            snakePositions[snakePositions.Length - 1] = pos;
+                        }
+                        else
+                        {
+                            snakePositions[snakePositions.Length - 1] = new Pos2D(pos.X, pos.Y - FieldY());
+                        }
+                        break;
+                    }
+            }
+            snakePositions[snakePositions.Length - 1].Direction_ = snakeDirection;
+
+            CollisionCheck();
         }
 
-        static char[,] consoleBuffer = null;
+        static int lastFieldX = FieldX();
+        static int lastFieldY = FieldY();
+
         static void Paint()
         {
-            lock (snakePositions)
+            var resized = lastFieldX != FieldX() || lastFieldY != FieldY();
+
+            if (resized)
             {
-                var resized = consoleBuffer != null && (consoleBuffer.GetLength(0) != FieldX() || consoleBuffer.GetLength(1) != FieldY());
+                writtenConsolePositions.Clear();
+                lastFieldX = FieldX();
+                lastFieldY = FieldY();
 
-                if (consoleBuffer == null || resized)
+                Console.CursorVisible = false;
+                for (int y = 0; y < Console.WindowHeight; ++y)
                 {
-                    consoleBuffer = new char[FieldX(), FieldY()];
-                    consoleBuffer.Fill('\0');
-                }
-
-                if (resized)
-                {
-                    Console.CursorVisible = false;
-                    for (int y = 0; y < Console.WindowHeight; ++y)
+                    for (int x = 0; x < Console.WindowWidth; ++x)
                     {
-                        for (int x = 0; x < Console.WindowWidth; ++x)
-                        {
-                            Console.SetCursorPosition(x, y);
-                            Console.Write(" \b\b");
-                        }
-                    }
-
-                    if (applePos.X >= FieldX() || applePos.Y >= FieldY())
-                    {
-                        // apple is outside field boundaries, generate a new
-                        GenerateApple();
+                        Console.SetCursorPosition(x, y);
+                        Console.Write(" \b\b");
                     }
                 }
 
-                try
+                if (applePos.X >= FieldX() || applePos.Y >= FieldY())
                 {
-                    for (int y = 0; y < FieldY(); ++y)
-                    {
-                        for (int x = 0; x < FieldX(); ++x)
-                        {
-                            var pos = new Pos2D(x, y);
-
-                            var _continue = false;
-                            foreach (var snakePos in snakePositions)
-                            {
-                                if (snakePos.Equals(pos))
-                                {
-                                    Console.SetCursorPosition(x, y);
-                                    Console.Write("*");
-                                    consoleBuffer[x, y] = '*';
-                                    _continue = true;
-                                    break;
-                                }
-                            }
-                            if (_continue)
-                            {
-                                continue;
-                            }
-
-                            if (applePos.Equals(pos))
-                            {
-                                Console.SetCursorPosition(x, y);
-                                Console.Write("Q");
-                                consoleBuffer[x, y] = 'Q';
-                            }
-                            else if (consoleBuffer[x, y] != '\0')
-                            {
-                                Console.SetCursorPosition(x, y);
-                                Console.Write(" \b\b");
-                                consoleBuffer[x, y] = '\0';
-                            }
-                        }
-                    }
-                }
-                catch (IndexOutOfRangeException)
-                {
-                    //console was resized - repaint
-                    Paint();
-                    return;
+                    // apple is outside field boundaries, generate a new
+                    GenerateApple();
                 }
             }
-        }
 
-        static void Paint_unoptimized()
-        {
-            lock (snakePositions) {
-                var resized = consoleBuffer != null && (consoleBuffer.GetLength(0) != FieldX() || consoleBuffer.GetLength(1) != FieldY());
-
-                if (consoleBuffer == null || resized)
+            var correctConsolePositions = new List<Pos2D>();
+            foreach (var snakePos in snakePositions)
+            {
+                if (snakePos != null)
                 {
-                    consoleBuffer = new char[FieldX(), FieldY()];
-                    consoleBuffer.Fill('\0');
-                }
-
-                if (resized)
-                {
-                    Console.CursorVisible = false;
-                    for (int y = 0; y < Console.WindowHeight; ++y)
+                    correctConsolePositions.Add(snakePos);
+                    if (writtenConsolePositions.Contains(snakePos))
                     {
-                        for (int x = 0; x < Console.WindowWidth; ++x)
-                        {
-                            Console.SetCursorPosition(x, y);
-                            Console.Write(" \b\b");
-                        }
+                        continue;
                     }
 
-                    if (applePos.X >= FieldX() || applePos.Y >= FieldY())
+                    Console.SetCursorPosition(snakePos.X, snakePos.Y);
+                    Console.Write("*");
+                    writtenConsolePositions.Add(snakePos);
+                }
+            }
+
+            correctConsolePositions.Add(applePos);
+            if (!writtenConsolePositions.Contains(applePos))
+            {
+                Console.SetCursorPosition(applePos.X, applePos.Y);
+                Console.Write("Q");
+                writtenConsolePositions.Add(applePos);
+            }
+
+            var writtenConsolePositionsToRemove = new List<Pos2D>();
+            foreach (var writtenPos in writtenConsolePositions)
+            {
+                var correct = false;
+                foreach (var correctConsolePos in correctConsolePositions)
+                {
+                    if (correctConsolePos.Equals(writtenPos))
                     {
-                        // apple is outside field boundaries, generate a new
-                        GenerateApple();
+                        correct = true;
+                        break;
                     }
                 }
 
-                try
+                if (!correct)
                 {
-                    for (int y = 0; y < FieldY(); ++y)
-                    {
-                        for (int x = 0; x < FieldX(); ++x)
-                        {
-                            var pos = new Pos2D(x, y);
-
-                            var _continue = false;
-                            foreach (var snakePos in snakePositions)
-                            {
-                                if (snakePos.Equals(pos))
-                                {
-                                    Console.SetCursorPosition(x, y);
-                                    Console.Write("*");
-                                    consoleBuffer[x, y] = '*';
-                                    _continue = true;
-                                    break;
-                                }
-                            }
-                            if (_continue)
-                            {
-                                continue;
-                            }
-
-                            if (applePos.Equals(pos))
-                            {
-                                Console.SetCursorPosition(x, y);
-                                Console.Write("Q");
-                                consoleBuffer[x, y] = 'Q';
-                            }
-                            else if (consoleBuffer[x, y] != '\0')
-                            {
-                                Console.SetCursorPosition(x, y);
-                                Console.Write(" \b\b");
-                                consoleBuffer[x, y] = '\0';
-                            }
-                        }
-                    }
+                    Console.SetCursorPosition(writtenPos.X, writtenPos.Y);
+                    Console.Write(" \b\b");
+                    writtenConsolePositionsToRemove.Add(writtenPos);
                 }
-                catch (IndexOutOfRangeException)
-                {
-                    //console was resized - repaint
-                    Paint();
-                    return;
-                }
+            }
+
+            foreach (var toRemove in writtenConsolePositionsToRemove)
+            {
+                writtenConsolePositions.Remove(toRemove);
             }
         }
     }

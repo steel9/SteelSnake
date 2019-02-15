@@ -10,7 +10,7 @@ namespace SteelSnake
     {
         public int X { get; set; }
         public int Y { get; set; }
-        public Direction? Direction_ { get; set; }
+        public Direction? Direction_ { get; set; } = null;
 
         public Pos2D(int x, int y, Direction? direction_ = null)
         {
