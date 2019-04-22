@@ -26,6 +26,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -62,6 +63,8 @@ namespace SteelSnake
 
         static void Main(string[] args)
         {
+            Console.Title = $"SteelSnake | v{Assembly.GetExecutingAssembly().GetName().Version}";
+
             inputThread = new Thread(() =>
             {
                 while (input)
