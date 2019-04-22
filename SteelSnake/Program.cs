@@ -50,7 +50,7 @@ namespace SteelSnake
         static Pos2D[] snakePositions;
         static Pos2D.Direction snakeDirection;
 
-        static int Score { get; set; } = 0;
+        static double Score { get; set; } = 0D;
 
         static Pos2D applePos;
 
@@ -124,7 +124,7 @@ namespace SteelSnake
 
             renderingThread.Join();
 
-            string msg1 = "Game over! Score: " + Score.ToString();
+            string msg1 = "Game over! Score (based on window size): " + Score.ToString();
             const string msg2 = "Press ENTER to exit";
 
             if (gameOver)
@@ -258,9 +258,11 @@ namespace SteelSnake
             }
         }
 
-        static void AddPoints(int points)
+        static void AddPoints(double points)
         {
-            Score += points;
+            Score += points * 3600 / (Console.WindowWidth * Console.WindowHeight);
+            // * 3600 because 1 apple in standard size (120x30) should give 1 point
+            // larger size of the window => lower score (for 1 apple)
         }
 
         static void GameOver()
